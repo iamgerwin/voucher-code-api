@@ -10,7 +10,7 @@ class Voucher extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['user_id', 'code'];
+    protected $fillable = ['user_id', 'code', 'used_at'];
 
     public function user(): BelongsTo
     {
