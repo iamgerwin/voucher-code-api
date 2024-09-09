@@ -2,10 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\UserAdded;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\LoginRequest;
+use App\Http\Requests\UserRegisterRequest;
+use App\Models\User;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use OpenApi\Annotations as OA;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
@@ -13,7 +20,7 @@ class AuthController extends Controller
 
     public function __construct()
     {
-        //
+        //TODO: make user interface & service
     }
 
     /**
@@ -43,18 +50,36 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function register()
+    public function register(UserRegisterRequest $request)
     {
-        //
+        $user = User::create($request);
+
+        UserAdded::dispatch($user);
+
+        return $user;
     }
 
-    public function login()
+    public function login(LoginRequest $request)
     {
-        //
+        if(!Auth::attempt($request->validated())) {
+            throw new HttpResponseException(response: Response::HTTP_UNAUTHORIZED, previous: 'Unauthorized');
+        }
+
+        $user = auth()->user();
+        $tokenResult = $user->createToken('Personal Access Token');
+        $token = $tokenResult->plainTextToken;
+        return [
+            'accessToken' => $token,
+            'token_type' => 'Bearer'
+        ];
     }
 
     public function logout(Request $request): JsonResponse
     {
-        //
+        auth()->user()->tokens()->delete();
+
+        return response()->json([
+            'message' => 'logged out!',
+        ]);
     }
 }
