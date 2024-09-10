@@ -6,7 +6,9 @@ use App\Events\UserAdded;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UserRegisterRequest;
+use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\User\UserService;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,9 +20,9 @@ class AuthController extends Controller
 {
     protected $userService;
 
-    public function __construct()
+    public function __construct(UserService $userService)
     {
-        //TODO: make user interface & service
+        $this->userService = $userService;
     }
 
     /**
@@ -50,30 +52,30 @@ class AuthController extends Controller
      *     )
      * )
      */
-    public function register(UserRegisterRequest $request)
+    public function register(UserRegisterRequest $request): JsonResponse
     {
-        $user = User::create($request);
-
-        UserAdded::dispatch($user);
-
-        return $user;
+        $user = $this->userService->register($request->validated());
+        return response()->json(new UserResource($user), Response::HTTP_CREATED);
     }
 
-    public function login(LoginRequest $request)
+    /**
+     * Authenticates a user and returns a JSON response with the login data.
+     *
+     * @param LoginRequest $request The request object containing the login credentials.
+     * @return JsonResponse A JSON response with the login data.
+     */
+    public function login(LoginRequest $request): JsonResponse
     {
-        if(!Auth::attempt($request->validated())) {
-            throw new HttpResponseException(response: Response::HTTP_UNAUTHORIZED, previous: 'Unauthorized');
-        }
-
-        $user = auth()->user();
-        $tokenResult = $user->createToken('Personal Access Token');
-        $token = $tokenResult->plainTextToken;
-        return [
-            'accessToken' => $token,
-            'token_type' => 'Bearer'
-        ];
+        $data = $this->userService->login($request->validated());
+        return response()->json($data, Response::HTTP_OK);
     }
 
+    /**
+     * Logs out the current user by deleting their tokens.
+     *
+     * @param Request $request The incoming request object.
+     * @return JsonResponse A JSON response with a success message.
+     */
     public function logout(Request $request): JsonResponse
     {
         auth()->user()->tokens()->delete();
