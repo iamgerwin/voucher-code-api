@@ -14,10 +14,10 @@ Route::group(['prefix' => 'auth', 'as' => 'auth.'], function() {
 })->middleware('api');
 
 // Voucher routes
-//Route::group(['prefix' => 'vouchers', 'as' => 'vouchers.'], function() {
-//    Route::get('/', [VoucherController::class, 'index'])->name('index');
-//    Route::post('/', [VoucherController::class, 'store'])->name('store');
-//    Route::get('/{id}', [VoucherController::class, 'show'])->name('show');
-//    Route::put('/{id}', [VoucherController::class, 'update'])->name('update');
-//    Route::delete('/{id}', [VoucherController::class, 'destroy'])->name('destroy');
-//})->middleware('auth:sanctum');
+Route::group(['prefix' => 'vouchers', 'as' => 'vouchers.'], function() {
+    Route::get('/', [VoucherController::class, 'index'])->name('index');
+    Route::post('/', [VoucherController::class, 'store'])->name('store');
+    Route::get('/{key}/{value}', [VoucherController::class, 'show'])->name('show');
+    Route::delete('/{value}', [VoucherController::class, 'destroy'])->name('destroy');
+    Route::delete('/{key}/{value', [VoucherController::class, 'destroyByKey'])->name('destroy.key');
+})->middleware('auth:sanctum');
