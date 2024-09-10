@@ -3,41 +3,44 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\VoucherDestroyValidation;
 use App\Http\Resources\UserResource;
 use App\Http\Resources\VoucherResource;
 use App\Http\Resources\VoucherResourceCollection;
 use App\Models\Voucher;
+use App\Services\Voucher\IVoucher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Routing\Controllers\Middleware;
 use Symfony\Component\HttpFoundation\Response;
 
 class VoucherController extends Controller
 {
-    public function __construct()
+    protected IVoucher $voucherService;
+
+    public function __construct(IVoucher $voucherService)
     {
-        // TODO: make voucher interface and service
+        $this->voucherService = $voucherService;
+    }
+
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(VoucherDestroyValidation::class, [
+                'only' => ['destroy', 'destroy.key'],
+            ])
+        ];
     }
 
     /**
      * Generates a new voucher for the authenticated user.
      *
      * @param Request $request The incoming HTTP request.
-     * @throws \Symfony\Component\HttpFoundation\Response The HTTP response with a 422 status code if the user has already maxed out their vouchers.
      * @return JsonResponse The HTTP response with a JSON payload containing the new voucher.
      */
     public function generate(Request $request): JsonResponse
     {
-        // max vouchers
-        if (auth()->user()->vouchers()->count() >= 10) {
-            abort(response()->json(['error' => 'Voucher already maxed out.', Response::HTTP_UNPROCESSABLE_ENTITY]));
-        }
-
-        // generate and insert voucher
-        $voucher =  Voucher::create([
-            'code' => $this->generateCode(),
-            'user_id' => auth()->user()->id,
-        ]);
+        $voucher = $this->voucherService->generate(auth()->user());
 
         // response
         return response()->json([
@@ -54,29 +57,19 @@ class VoucherController extends Controller
      */
     public function index(UserResource $userResource): VoucherResourceCollection
     {
-        $vouchers = auth()->user()->vouchers;
-        return (new VoucherResourceCollection($vouchers));
+        return $this->voucherService->getVouchersByUser(new UserResource(auth()->user()));
     }
-
 
     /**
      * Retrieves a voucher by a specified key.
      *
      * @param string $key The key to retrieve the voucher by. Defaults to 'code'.
-     * @param string $value The value of the key to retrieve the voucher by. Defaults to null.
-     * @throws \Illuminate\Http\Exceptions\HttpResponseException If the key is invalid.
+     * @param string|null $value The value of the key to retrieve the voucher by. Defaults to null.
      * @return VoucherResource
      */
     public function show(string $key = 'code', string $value = null): VoucherResource
     {
-        $validKeys = ['id', 'code'];
-        if (!in_array($key, $validKeys)) {
-            abort(response()->json(['error' => 'Invalid key', Response::HTTP_BAD_REQUEST]));
-        }
-
-        $voucher = Voucher::where($key, $value)->firstOrFail();
-
-        return new VoucherResource($voucher);
+        return $this->voucherService->show($key, $value);
     }
 
     /**
@@ -98,8 +91,7 @@ class VoucherController extends Controller
      * Deletes a voucher resource by a specified key.
      *
      * @param string $key The key to delete the voucher by. Defaults to 'code'.
-     * @param string $value The value of the key to delete the voucher by. Defaults to null.
-     * @throws \Illuminate\Http\Exceptions\HttpResponseException If the voucher does not exist or the user does not have permission to delete it.
+     * @param string|null $value The value of the key to delete the voucher by. Defaults to null.
      * @return JsonResponse The JSON response indicating the success of the deletion.
      */
     public function destroyByKey(string $key = 'code', string $value = null): JsonResponse
@@ -112,28 +104,4 @@ class VoucherController extends Controller
         return $this->destroy($voucher);
     }
 
-    /**
-     * Generates a unique voucher code.
-     *
-     * @return string The generated voucher code.
-     */
-    private function generateCode(): string
-    {
-        do {
-            $code = Str::random(5);
-        } while($this->validateCode($code));
-
-        return $code;
-    }
-
-    /**
-     * Validates if a given code exists in the Voucher table.
-     *
-     * @param string $code The code to validate.
-     * @return bool Returns true if the code exists, false otherwise.
-     */
-    private function validateCode(string $code): bool
-    {
-        return Voucher::where('code', $code)->exists();
-    }
 }

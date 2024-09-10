@@ -15,6 +15,11 @@ class VoucherResource extends JsonResource
      */
     public function toArray(Request $request): array
     {
-        return parent::toArray($request);
+        return [
+            'id' => $this->id,
+            'user_id' => $this->user()->id,
+            'code' => $this->code,
+            'used_at' => $this->used_at,
+        ];
     }
 }

@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-//use App\Http\Controllers\Api\VoucherController;
+use App\Http\Controllers\Api\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 // Auth routes
@@ -19,5 +19,5 @@ Route::group(['prefix' => 'vouchers', 'as' => 'vouchers.'], function() {
     Route::post('/', [VoucherController::class, 'store'])->name('store');
     Route::get('/{key}/{value}', [VoucherController::class, 'show'])->name('show');
     Route::delete('/{value}', [VoucherController::class, 'destroy'])->name('destroy');
-    Route::delete('/{key}/{value', [VoucherController::class, 'destroyByKey'])->name('destroy.key');
+    Route::delete('/{key}/{value}', [VoucherController::class, 'destroyByKey'])->name('destroy.key');
 })->middleware('auth:sanctum');

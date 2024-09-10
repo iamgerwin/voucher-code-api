@@ -2,17 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Events\UserAdded;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\UserRegisterRequest;
 use App\Http\Resources\UserResource;
-use App\Models\User;
-use App\Services\User\UserService;
-use Illuminate\Http\Exceptions\HttpResponseException;
+use App\Services\User\IUser;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use OpenApi\Annotations as OA;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -20,7 +16,7 @@ class AuthController extends Controller
 {
     protected $userService;
 
-    public function __construct(UserService $userService)
+    public function __construct(IUser $userService)
     {
         $this->userService = $userService;
     }
